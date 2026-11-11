@@ -2,6 +2,18 @@
 
 ; Prints A and stops
 start:
+
+; testing if A20 is already enabled
+in al, 0x92
+test al, 2
+jnz enabled
+
+; not enabled - enable manually
+or al, 2
+and al, 0xFE
+out 0x92, al
+enabled:
+
 mov ah, 0x0e   ; BIOS teletype function
 mov al, 'A'    ; Character to print
 mov bh, 0
