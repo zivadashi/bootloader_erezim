@@ -10,3 +10,6 @@ halt:
 cli            ; Clear interrupts
 hlt            ; Stop the CPU
 jmp halt
+
+times 510-($-$$) db 0
+dw 0xaa55

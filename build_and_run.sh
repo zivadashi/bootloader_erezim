@@ -20,7 +20,7 @@ dd if=/dev/zero of="$DISK_IMAGE" bs=1M count=64\
 dd if="$BOOTLOADER_BIN" of="$DISK_IMAGE" bs=512 conv=notrunc
 
 # burning the kernel to the disk
-dd if="$KERNEL_BIN" of="$DISK_IMAGE" bs=512 seek=16 conv=notrunc
+dd if="$KERNEL_BIN" of="$DISK_IMAGE" bs=512 seek=1 conv=notrunc
 
 # running qemu on the disk images
-qemu-system-x86_64 -drive file="$DISK_IMAGE",format=raw
+qemu-system-x86_64 -drive file="$DISK_IMAGE",format=raw -no-reboot -no-shutdown
