@@ -1,3 +1,4 @@
+[BITS 16]
 [org 0x7c00]
 
 jmp start
@@ -28,15 +29,24 @@ DAPACK:
 	db	0x10
 	db	0
 blkcnt:	dw	1		; int 13 resets this to # of blocks actually read/written
+; address 0x10000
 db_add:	dw	0x0000		; memory buffer destination address
-	dw	0x1000		; segment 0
+	dw	0x1000		; segment 1000
 d_lba:	dq	1
+
+; jump to 0x10000
+entry dw 0x0000 ; offset
+      dw 0x0001 ; segment
 
 start:
 
+; zeroing the segment registers
 xor ax, ax
 mov ds, ax
 mov es, ax
+mov ss, ax
+; set up the stack to point to 0x7c00
+mov sp, 0x7c00
 
 ; testing if A20 is already enabled
 in al, 0x92
@@ -81,11 +91,11 @@ mov bh, 0
 mov bl, 7
 int 0x10       ; Call BIOS video interrupt
 
+; disable interrupts and set global descriptor table
 cli
 lgdt [gdt_descriptor]
 
-; disable interrupts and set global descriptor table
-mov eax,cr0
+; switching to protected mode
 mov eax,cr0
 or eax,1
 mov cr0,eax
@@ -97,7 +107,11 @@ mov es,ax
 mov fs,ax
 mov gs,ax
 mov ss,ax
-jmp 0x1000:0x0000
+jmp dword 0x8:protected_mode ; far jump to kernel location
+
+[BITS 32]
+protected_mode:
+jmp dword [entry]
 
 ; putting the boot signature
 times 510-($-$$) db 0
