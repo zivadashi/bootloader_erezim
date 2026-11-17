@@ -59,12 +59,6 @@ and al, 0xFE
 out 0x92, al
 enabled:
 
-mov ah, 0x0e   ; BIOS teletype function
-mov al, 'A'    ; Character to print
-mov bh, 0
-mov bl, 7
-int 0x10       ; Call BIOS video interrupt
-
 mov si, DAPACK		; address of "disk address packet"
 mov ah, 0x42		; AL is unused
 mov dl, 0x80		; drive number 0 (OR the drive # with 0x80)
@@ -73,11 +67,6 @@ jc short failed_read
 jmp finished_read
 
 failed_read:
-mov ah, 0x0e   ; BIOS teletype function
-mov al, 'B'    ; Character to print
-mov bh, 0
-mov bl, 7
-int 0x10       ; Call BIOS video interrupt
 
 halt:
 cli            ; Clear interrupts
@@ -85,11 +74,6 @@ hlt            ; Stop the CPU
 jmp halt
 
 finished_read:
-mov ah, 0x0e   ; BIOS teletype function
-mov al, 'C'    ; Character to print
-mov bh, 0
-mov bl, 7
-int 0x10       ; Call BIOS video interrupt
 
 ; disable interrupts and set global descriptor table
 cli
