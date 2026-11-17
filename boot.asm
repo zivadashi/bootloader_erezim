@@ -38,6 +38,8 @@ d_lba:	dq	1
 entry dw 0x0000 ; offset
       dw 0x0001 ; segment
 
+read_failure_string: db "Failed to read kernel code", 0
+
 start:
 
 ; zeroing the segment registers
@@ -67,6 +69,16 @@ jc short failed_read
 jmp finished_read
 
 failed_read:
+mov si, read_failure_string
+mov ah, 0x0e
+mov bh, 0
+
+print_loop:
+lodsb
+cmp al, 0
+je halt
+int 10h
+jmp print_loop
 
 halt:
 cli            ; Clear interrupts
