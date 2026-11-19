@@ -1,0 +1,114 @@
+[BITS 16]
+[org 0x7c00]
+
+jmp start
+
+gdt_start:
+    dq 0x0           ; Null descriptor (required)
+gdt_code:
+    dw 0xFFFF        ; Limit (low)
+    dw 0x0000        ; Base (low)
+    db 0x00          ; Base (middle)
+    db 10011010b     ; Access byte (32-bit code segment)
+    db 11001111b     ; Flags (4 KB granularity)
+    db 0x00          ; Base (high)
+gdt_data:
+    dw 0xFFFF        ; Limit (low)
+    dw 0x0000        ; Base (low)
+    db 0x00          ; Base (middle)
+    db 10010010b     ; Access byte (data segment)
+    db 11001111b     ; Flags (4 KB granularity)
+    db 0x00          ; Base (high)
+gdt_end:
+
+gdt_descriptor:
+    dw gdt_end - gdt_start - 1
+    dd gdt_start
+
+DAPACK:
+	db	0x10
+	db	0
+blkcnt:	dw	1		; int 13 resets this to # of blocks actually read/written
+; address 0x10000
+db_add:	dw	0x0000		; memory buffer destination address
+	dw	0x1000		; segment 1000
+d_lba:	dq	1
+
+; jump to 0x10000
+entry dw 0x0000 ; offset
+      dw 0x0001 ; segment
+
+read_failure_string: db "Failed to read kernel code", 0
+
+start:
+
+; zeroing the segment registers
+xor ax, ax
+mov ds, ax
+mov es, ax
+mov ss, ax
+; set up the stack to point to 0x7c00
+mov sp, 0x7c00
+
+; testing if A20 is already enabled
+in al, 0x92
+test al, 2
+jnz enabled
+
+; not enabled - enable manually
+or al, 2
+and al, 0xFE
+out 0x92, al
+enabled:
+
+mov si, DAPACK		; address of "disk address packet"
+mov ah, 0x42		; AL is unused
+mov dl, 0x80		; drive number 0 (OR the drive # with 0x80)
+int 0x13
+jc short failed_read
+jmp finished_read
+
+failed_read:
+mov si, read_failure_string
+mov ah, 0x0e
+mov bh, 0
+
+print_loop:
+lodsb
+cmp al, 0
+je halt
+int 10h
+jmp print_loop
+
+halt:
+cli            ; Clear interrupts
+hlt            ; Stop the CPU
+jmp halt
+
+finished_read:
+
+; disable interrupts and set global descriptor table
+cli
+lgdt [gdt_descriptor]
+
+; switching to protected mode
+mov eax,cr0
+or eax,1
+mov cr0,eax
+
+; set registers and far jump to the kernel
+mov ax,10h
+mov ds,ax
+mov es,ax
+mov fs,ax
+mov gs,ax
+mov ss,ax
+jmp dword 0x8:protected_mode ; far jump to kernel location
+
+[BITS 32]
+protected_mode:
+jmp dword [entry]
+
+; putting the boot signature
+times 510-($-$$) db 0
+dw 0xaa55
